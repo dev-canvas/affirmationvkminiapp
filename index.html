@@ -51,23 +51,16 @@
         font-size: 0.85rem;
       }
     </style>
-    <!-- ВАЖНО: сначала подключаем VK Bridge -->
-    <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
+    <!-- Правильное подключение VK Bridge -->
+    <script src="https://vk.com/js/api/xd_connection.js?2"></script>
   </head>
   <body>
     <h1>Твоя фраза-«обнимашка»</h1>
-
-    <!-- Сюда JS напишет фразу -->
     <div id="affirmation">Загрузка...</div>
-
-    <!-- Кнопка с обязательным id="shareBtn" -->
     <button id="shareBtn">Поделиться в сторис</button>
     <div class="hint">Нажми кнопку — откроется сторис с текстом и ссылкой на твой блог</div>
 
     <script>
-      // 1. Получаем мост. Он может быть undefined, если скрипт ещё не загрузился
-      const bridge = window.VKBridge;
-
       const affirmations = [
         "Сегодня я выбираю спокойствие и заботу о себе.",
         "Я справляюсь с тем, что важно прямо сейчас.",
@@ -100,28 +93,35 @@
         const btn = document.getElementById('shareBtn');
         if (!btn) return;
 
-        // 2. ГЛАВНОЕ: проверяем, существует ли bridge, прежде чем использовать .send
-        if (bridge) {
-          // Инициализируем приложение (это безопасно даже при ошибке)
-          bridge.send('VKWebAppInit').catch(err => console.error('VK Init error:', err));
-
-          btn.addEventListener('click', () => {
-            const link = 'https://vk.com/aseevi'; // <-- ЗАМЕНИ на ссылку своего блога
-            const shareText = `✨ \${text}\n\nСохраняй себе, чтобы возвращаться, когда станет тяжело. Заходи в мой блог — там ещё больше поддержки.`;
-
-            // Теперь .send точно сработает, потому что мы проверили bridge выше
-            bridge.send('VKWebAppShowShareBox', {
-              link: link,
-              title: 'Фраза-«обнимашка» для тебя',
-              description: shareText
+        // Проверяем наличие VK Bridge
+        if (typeof VK !== 'undefined' && VK && VK.callMethod) {
+          // Инициализация для VK Mini Apps
+          VK.init(function() {
+            console.log('VK init success');
+          }, function() {
+            console.log('VK init error');
+          });
+          
+          btn.addEventListener('click', function() {
+            const link = 'https://vk.com/aseevi';
+            const shareText = `✨ ${text}\n\nСохраняй себе, чтобы возвращаться, когда станет тяжело. Заходи в мой блог — там ещё больше поддержки.`;
+            
+            // Для историй используем VKWebAppShowStoryBox
+            VK.callMethod('VKWebAppShowStoryBox', {
+              background_type: 'text',
+              text: shareText,
+              link: {
+                text: 'Мой блог',
+                url: link
+              }
             });
           });
         } else {
-          // 3. Если VK Bridge нет (открыли в браузере) — делаем «Скопировать фразу»
+          // Если не в VK - копирование
           console.warn('VK Bridge not found. Switching to copy mode.');
           btn.textContent = 'Скопировать фразу';
-          btn.onclick = () => {
-            const copyText = `✨ \${text}\n\nЗаходи в мой блог: https://vk.com/aseevi`; // <-- ЗАМЕНИ ссылку
+          btn.onclick = function() {
+            const copyText = `✨ ${text}\n\nЗаходи в мой блог: https://vk.com/aseevi`;
             navigator.clipboard.writeText(copyText).then(() => {
               const oldText = btn.textContent;
               btn.textContent = 'Скопировано!';
