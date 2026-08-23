@@ -13,7 +13,8 @@
 
     <script>
       // 1. Инициализируем мост
-      const bridge = window.VKBridge;
+      // Исправление: VKBridge может быть доступен как window.VKBridge или window.vkBridge
+      const bridge = window.vkBridge || window.VKBridge;
 
       const statusEl = document.getElementById('status');
       const detailsEl = document.getElementById('details');
@@ -25,6 +26,15 @@
         
         detailsEl.textContent = 'VK Bridge успешно найден. Можно добавлять функционал.';
         detailsEl.style.color = '#333';
+        
+        // Исправление: Добавляем инициализацию bridge для корректной работы
+        bridge.send('VKWebAppInit', {})
+          .then((data) => {
+            console.log('VK Bridge инициализирован:', data);
+          })
+          .catch((error) => {
+            console.error('Ошибка инициализации VK Bridge:', error);
+          });
       } else {
         // 3. Если моста нет (мы в браузере)
         statusEl.textContent = '⚠️ Ты открыла ссылку не внутри ВКонтакте.';
