@@ -248,6 +248,25 @@
         to { transform: rotate(360deg); }
       }
 
+      .share-options {
+        display: none;
+        margin-top: 12px;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      .share-options.show {
+        display: flex;
+      }
+
+      .share-options .btn {
+        flex: 1;
+        min-width: 120px;
+        font-size: 14px;
+        padding: 10px 16px;
+      }
+
       @media (max-width: 480px) {
         .container {
           padding: 28px 20px;
@@ -290,11 +309,24 @@
         <button id="newAffirmationBtn" class="btn btn-primary">
           🎲 Новая аффирмация
         </button>
-        <button id="postStoryBtn" class="btn btn-vk" disabled>
-          📱 Опубликовать в сторис
+        <button id="shareBtn" class="btn btn-vk" disabled>
+          📤 Поделиться
         </button>
         <button id="copyBtn" class="btn btn-outline">
           📋 Скопировать текст
+        </button>
+      </div>
+
+      <!-- Дополнительные опции -->
+      <div id="shareOptions" class="share-options">
+        <button id="shareStoryBtn" class="btn btn-vk" style="background: #ff6b6b;">
+          📱 В сторис
+        </button>
+        <button id="shareMessageBtn" class="btn btn-vk" style="background: #4ecdc4;">
+          💬 В сообщение
+        </button>
+        <button id="shareWallBtn" class="btn btn-vk" style="background: #45b7d1;">
+          📝 На стену
         </button>
       </div>
 
@@ -331,7 +363,7 @@
       let currentAffirmation = '';
       let currentIndex = 0;
       let isVK = false;
-      let isPosting = false;
+      let isSharing = false;
 
       // ==================== DOM ЭЛЕМЕНТЫ ====================
       const statusBadge = document.getElementById('statusBadge');
@@ -339,7 +371,11 @@
       const affirmationBox = document.getElementById('affirmationBox');
       const affirmationCounter = document.getElementById('affirmationCounter');
       const newBtn = document.getElementById('newAffirmationBtn');
-      const postBtn = document.getElementById('postStoryBtn');
+      const shareBtn = document.getElementById('shareBtn');
+      const shareStoryBtn = document.getElementById('shareStoryBtn');
+      const shareMessageBtn = document.getElementById('shareMessageBtn');
+      const shareWallBtn = document.getElementById('shareWallBtn');
+      const shareOptions = document.getElementById('shareOptions');
       const copyBtn = document.getElementById('copyBtn');
       const toast = document.getElementById('toast');
 
@@ -352,9 +388,7 @@
         toast.className = 'toast';
         toast.classList.add(type);
         
-        // Форсируем reflow для анимации
         void toast.offsetWidth;
-        
         toast.classList.add('show');
         
         clearTimeout(toast._timeout);
@@ -375,7 +409,6 @@
         currentIndex = index;
         currentAffirmation = AFFIRMATIONS[index];
         
-        // Анимация смены
         affirmationBox.classList.add('fade');
         
         setTimeout(() => {
@@ -389,18 +422,17 @@
         return currentAffirmation || AFFIRMATIONS[0];
       }
 
-      function getStoryText() {
-        return `✨ Моя аффирмация дня: "${getAffirmationText()}" 🌟`;
+      function getShareText() {
+        return `✨ Моя аффирмация дня:\n\n"${getAffirmationText()}"\n\n🌟 Поделись вдохновением с друзьями!`;
       }
 
       // ==================== КОПИРОВАНИЕ ====================
       async function copyAffirmation() {
-        const text = getAffirmationText();
+        const text = getShareText();
         try {
           await navigator.clipboard.writeText(text);
           showToast('✅ Аффирмация скопирована!', 'success');
         } catch (err) {
-          // Fallback для старых браузеров
           const textarea = document.createElement('textarea');
           textarea.value = text;
           document.body.appendChild(textarea);
@@ -415,145 +447,115 @@
         }
       }
 
-      // ==================== ПУБЛИКАЦИЯ В СТОРИС ====================
-      async function postToStory() {
+      // ==================== ПУБЛИКАЦИЯ В VK ====================
+      async function shareToVK(shareType = 'share') {
         if (!isVK) {
           showToast('❌ Функция доступна только внутри ВКонтакте', 'error');
           return;
         }
 
-        if (isPosting) return;
-        isPosting = true;
-        postBtn.disabled = true;
-        postBtn.innerHTML = '<span class="loading-spinner"></span> Публикация...';
+        if (isSharing) return;
+        isSharing = true;
+        shareBtn.disabled = true;
+        shareBtn.innerHTML = '<span class="loading-spinner"></span> Публикация...';
 
         try {
-          const storyText = getStoryText();
+          const shareText = getShareText();
           
-          // 1. Проверяем, есть ли доступ к созданию сторис
-          const checkResult = await bridge.send('VKWebAppCheckStoryAccess', {});
-          console.log('Check story access:', checkResult);
-
-          if (!checkResult.available) {
-            showToast('❌ Сторис недоступны для этого приложения', 'error');
-            isPosting = false;
-            postBtn.disabled = false;
-            postBtn.innerHTML = '📱 Опубликовать в сторис';
-            return;
-          }
-
-          // 2. Создаём изображение для сторис с текстом
-          const canvas = document.createElement('canvas');
-          canvas.width = 1080;
-          canvas.height = 1920;
-          const ctx = canvas.getContext('2d');
-
-          // Градиентный фон
-          const gradient = ctx.createLinearGradient(0, 0, 1080, 1920);
-          gradient.addColorStop(0, '#667eea');
-          gradient.addColorStop(0.5, '#764ba2');
-          gradient.addColorStop(1, '#f093fb');
-          ctx.fillStyle = gradient;
-          ctx.fillRect(0, 0, 1080, 1920);
-
-          // Декоративные круги
-          ctx.beginPath();
-          ctx.arc(1080, 0, 400, 0, Math.PI * 2);
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
-          ctx.fill();
-
-          ctx.beginPath();
-          ctx.arc(0, 1920, 500, 0, Math.PI * 2);
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
-          ctx.fill();
-
-          // Текст аффирмации
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-
-          // Кавычки
-          ctx.font = 'bold 80px Georgia, serif';
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
-          ctx.fillText('"', 540, 300);
-
-          // Основной текст
-          const maxWidth = 800;
-          const lines = [];
-          let currentLine = '';
-          const words = getAffirmationText().split(' ');
-
-          ctx.font = 'bold 64px -apple-system, BlinkMacSystemFont, sans-serif';
-          ctx.fillStyle = '#ffffff';
-
-          for (const word of words) {
-            const testLine = currentLine + word + ' ';
-            const metrics = ctx.measureText(testLine);
-            if (metrics.width > maxWidth && currentLine.length > 0) {
-              lines.push(currentLine.trim());
-              currentLine = word + ' ';
-            } else {
-              currentLine = testLine;
+          // Определяем тип публикации
+          let method = 'VKWebAppShare';
+          let params = { link: window.location.href };
+          
+          if (shareType === 'story') {
+            // Для сторис используем VKWebAppShowStoryBox если доступно
+            try {
+              const result = await bridge.send('VKWebAppShowStoryBox', {
+                text: shareText,
+                background: '#667eea'
+              });
+              console.log('Story box result:', result);
+              if (result && result.result) {
+                showToast('✅ Сторис опубликована! 🌟', 'success', 4000);
+              } else {
+                // Если не сработало, используем обычный шаринг
+                throw new Error('Story box not available');
+              }
+              return;
+            } catch (storyError) {
+              console.warn('VKWebAppShowStoryBox не доступен, используем VKWebAppShare:', storyError);
+              // Используем обычный шаринг с текстом
+              params = { 
+                link: window.location.href,
+                text: shareText
+              };
+            }
+          } else if (shareType === 'message') {
+            // Для сообщений используем VKWebAppSendMessage
+            try {
+              const result = await bridge.send('VKWebAppSendMessage', {
+                message: shareText,
+                attachment: window.location.href
+              });
+              console.log('Send message result:', result);
+              if (result && result.result) {
+                showToast('✅ Сообщение отправлено!', 'success', 3000);
+              } else {
+                throw new Error('Send message failed');
+              }
+              return;
+            } catch (msgError) {
+              console.warn('VKWebAppSendMessage не доступен, используем VKWebAppShare:', msgError);
+              params = { 
+                link: window.location.href,
+                text: shareText
+              };
+            }
+          } else if (shareType === 'wall') {
+            // Для стены используем VKWebAppShowWallPostBox
+            try {
+              const result = await bridge.send('VKWebAppShowWallPostBox', {
+                message: shareText,
+                attachments: window.location.href
+              });
+              console.log('Wall post result:', result);
+              if (result && result.result) {
+                showToast('✅ Запись на стене создана!', 'success', 3000);
+              } else {
+                throw new Error('Wall post not available');
+              }
+              return;
+            } catch (wallError) {
+              console.warn('VKWebAppShowWallPostBox не доступен, используем VKWebAppShare:', wallError);
+              params = { 
+                link: window.location.href,
+                text: shareText
+              };
             }
           }
-          if (currentLine.length > 0) lines.push(currentLine.trim());
 
-          const lineHeight = 90;
-          const startY = 800;
+          // Универсальный метод шаринга
+          const result = await bridge.send('VKWebAppShare', params);
+          console.log('Share result:', result);
 
-          lines.forEach((line, i) => {
-            const y = startY + i * lineHeight;
-            // Тень для читаемости
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-            ctx.shadowBlur = 20;
-            ctx.shadowOffsetX = 0;
-            ctx.shadowOffsetY = 4;
-            ctx.fillText(line, 540, y);
-          });
-
-          // Сброс тени
-          ctx.shadowColor = 'transparent';
-          ctx.shadowBlur = 0;
-
-          // Кавычки закрывающие
-          ctx.font = 'bold 80px Georgia, serif';
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
-          ctx.fillText('"', 540, lines.length * lineHeight + 850);
-
-          // Подпись
-          ctx.font = '400 36px -apple-system, BlinkMacSystemFont, sans-serif';
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-          ctx.fillText('✨ Аффирмация дня ✨', 540, 1750);
-
-          // Нижний декоративный элемент
-          ctx.font = '24px -apple-system, BlinkMacSystemFont, sans-serif';
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-          ctx.fillText('Поделись вдохновением с друзьями', 540, 1840);
-
-          // Конвертируем в Blob
-          const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-
-          // 3. Загружаем фото на сервер VK
-          const uploadResult = await bridge.send('VKWebAppUploadStory', {
-            file: blob,
-            text: storyText,
-            attach_link: true
-          });
-
-          console.log('Story upload result:', uploadResult);
-
-          if (uploadResult.result) {
-            showToast('✅ Сторис опубликована! 🌟', 'success', 4000);
+          if (result && result.result) {
+            let successMessage = '✅ Поделились! 🌟';
+            if (shareType === 'story') successMessage = '✅ Сторис опубликована! 🌟';
+            else if (shareType === 'message') successMessage = '✅ Сообщение отправлено! 📨';
+            else if (shareType === 'wall') successMessage = '✅ Запись на стене создана! 📝';
+            showToast(successMessage, 'success', 3000);
           } else {
-            throw new Error('Не удалось опубликовать сторис');
+            showToast('❌ Не удалось опубликовать', 'error');
           }
 
         } catch (error) {
-          console.error('Ошибка публикации сторис:', error);
-          showToast('❌ Ошибка при публикации: ' + (error.message || 'Неизвестная ошибка'), 'error', 4000);
+          console.error('Ошибка публикации:', error);
+          showToast('❌ Ошибка: ' + (error.message || 'Неизвестная ошибка'), 'error', 4000);
         } finally {
-          isPosting = false;
-          postBtn.disabled = false;
-          postBtn.innerHTML = '📱 Опубликовать в сторис';
+          isSharing = false;
+          shareBtn.disabled = false;
+          shareBtn.innerHTML = '📤 Поделиться';
+          // Скрываем опции
+          shareOptions.classList.remove('show');
         }
       }
 
@@ -561,25 +563,13 @@
       async function initVK() {
         if (bridge) {
           try {
-            // Пытаемся инициализировать VK Bridge
-            await bridge.send('VKWebAppInit', {});
-            isVK = true;
+            const initResult = await bridge.send('VKWebAppInit', {});
+            console.log('VK Bridge инициализирован:', initResult);
             
+            isVK = true;
             statusBadge.textContent = '✅ ВКонтакте';
             statusBadge.className = 'status-badge vk';
-            
-            postBtn.disabled = false;
-            
-            // Проверяем доступ к сторис
-            try {
-              const checkResult = await bridge.send('VKWebAppCheckStoryAccess', {});
-              if (!checkResult.available) {
-                postBtn.title = 'Сторис недоступны';
-                postBtn.style.opacity = '0.6';
-              }
-            } catch (e) {
-              console.warn('Не удалось проверить доступ к сторис:', e);
-            }
+            shareBtn.disabled = false;
             
             showToast('✅ Приложение подключено к ВКонтакте', 'info', 2000);
             
@@ -588,14 +578,15 @@
             isVK = false;
             statusBadge.textContent = '⚠️ Ошибка подключения';
             statusBadge.className = 'status-badge browser';
-            postBtn.disabled = true;
+            shareBtn.disabled = true;
             showToast('⚠️ Ошибка подключения к ВКонтакте', 'error');
           }
         } else {
           isVK = false;
           statusBadge.textContent = '⚠️ Вне ВКонтакте';
           statusBadge.className = 'status-badge browser';
-          postBtn.disabled = true;
+          shareBtn.disabled = true;
+          showToast('💡 Открой приложение в ВКонтакте', 'info', 3000);
         }
       }
 
@@ -604,41 +595,49 @@
         const newIndex = getRandomAffirmation();
         setAffirmation(newIndex);
         showToast('✨ Новая аффирмация готова!', 'info', 1500);
+        // Скрываем опции при смене
+        shareOptions.classList.remove('show');
+        shareBtn.textContent = '📤 Поделиться';
       });
 
-      postBtn.addEventListener('click', postToStory);
+      // Основная кнопка "Поделиться" - показывает опции
+      shareBtn.addEventListener('click', () => {
+        if (!isVK) {
+          showToast('❌ Функция доступна только внутри ВКонтакте', 'error');
+          return;
+        }
+        shareOptions.classList.toggle('show');
+        if (shareOptions.classList.contains('show')) {
+          shareBtn.textContent = '✖️ Скрыть опции';
+        } else {
+          shareBtn.textContent = '📤 Поделиться';
+        }
+      });
+
+      // Кнопки для разных типов публикации
+      shareStoryBtn.addEventListener('click', () => shareToVK('story'));
+      shareMessageBtn.addEventListener('click', () => shareToVK('message'));
+      shareWallBtn.addEventListener('click', () => shareToVK('wall'));
 
       copyBtn.addEventListener('click', copyAffirmation);
 
-      // ==================== ЗАПУСК ====================
-      // Устанавливаем первую аффирмацию
-      const initialIndex = Math.floor(Math.random() * AFFIRMATIONS.length);
-      setAffirmation(initialIndex);
-
-      // Инициализируем VK
-      initVK();
-
-      // Обработка ошибок VK Bridge
+      // ==================== ПОДПИСКА НА СОБЫТИЯ VK ====================
       if (bridge) {
         bridge.subscribe((event) => {
           console.log('VK Bridge event:', event);
           
-          if (event.detail && event.detail.type === 'VKWebAppStoryUploadFailed') {
-            showToast('❌ Ошибка загрузки сторис', 'error');
-            isPosting = false;
-            postBtn.disabled = false;
-            postBtn.innerHTML = '📱 Опубликовать в сторис';
+          if (event.detail && event.detail.type === 'VKWebAppShareResult') {
+            if (event.detail.data && event.detail.data.result) {
+              showToast('✅ Поделились успешно! 🌟', 'success', 3000);
+            }
           }
         });
       }
 
-      // ==================== ТЕСТОВЫЙ РЕЖИМ ====================
-      // Если мы вне ВК, показываем подсказку о публикации сторис
-      if (!isVK) {
-        setTimeout(() => {
-          showToast('💡 Для публикации сторис открой приложение в ВК', 'info', 4000);
-        }, 1500);
-      }
+      // ==================== ЗАПУСК ====================
+      const initialIndex = Math.floor(Math.random() * AFFIRMATIONS.length);
+      setAffirmation(initialIndex);
+      initVK();
 
       console.log('✅ Аффирмация дня готова!');
       console.log(`📋 Всего аффирмаций: ${AFFIRMATIONS.length}`);
