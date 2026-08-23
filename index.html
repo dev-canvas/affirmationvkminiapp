@@ -3,46 +3,645 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Тест ВК Мини-апп</title>
+    <title>Аффирмация дня | ВК Мини-апп</title>
     <!-- Подключаем VK Bridge -->
     <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 20px;
+      }
+
+      .container {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 24px;
+        padding: 40px 30px;
+        max-width: 420px;
+        width: 100%;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        text-align: center;
+        transition: all 0.3s ease;
+      }
+
+      .status-badge {
+        display: inline-block;
+        padding: 6px 16px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        margin-bottom: 20px;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+      }
+
+      .status-badge.vk {
+        background: #e8f0ff;
+        color: #0077FF;
+      }
+
+      .status-badge.browser {
+        background: #ffebee;
+        color: #FF5252;
+      }
+
+      .icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+        display: block;
+      }
+
+      h1 {
+        font-size: 20px;
+        color: #333;
+        margin-bottom: 8px;
+      }
+
+      .subtitle {
+        color: #888;
+        font-size: 14px;
+        margin-bottom: 24px;
+      }
+
+      .affirmation-box {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        border-radius: 16px;
+        padding: 30px 20px;
+        margin: 20px 0 28px;
+        min-height: 120px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        transition: all 0.5s ease;
+      }
+
+      .affirmation-box.fade {
+        opacity: 0;
+        transform: scale(0.95);
+      }
+
+      .affirmation-text {
+        font-size: 22px;
+        font-weight: 600;
+        color: #2d3748;
+        line-height: 1.6;
+        font-style: italic;
+      }
+
+      .affirmation-text .quote-mark {
+        color: #667eea;
+        font-size: 28px;
+        margin: 0 4px;
+      }
+
+      .affirmation-counter {
+        position: absolute;
+        bottom: 10px;
+        right: 16px;
+        font-size: 12px;
+        color: #999;
+        font-weight: 500;
+      }
+
+      .btn-group {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-top: 20px;
+      }
+
+      .btn {
+        padding: 14px 24px;
+        border: none;
+        border-radius: 12px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+
+      .btn:active {
+        transform: scale(0.97);
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+      }
+
+      .btn-primary:hover {
+        box-shadow: 0 6px 25px rgba(102, 126, 234, 0.5);
+        transform: translateY(-2px);
+      }
+
+      .btn-primary:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .btn-vk {
+        background: #0077FF;
+        color: white;
+        box-shadow: 0 4px 15px rgba(0, 119, 255, 0.3);
+      }
+
+      .btn-vk:hover {
+        background: #0066dd;
+        box-shadow: 0 6px 25px rgba(0, 119, 255, 0.4);
+        transform: translateY(-2px);
+      }
+
+      .btn-vk:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .btn-success {
+        background: #34c759;
+        color: white;
+        box-shadow: 0 4px 15px rgba(52, 199, 89, 0.3);
+      }
+
+      .btn-success:hover {
+        background: #2db84e;
+        transform: translateY(-2px);
+      }
+
+      .btn-outline {
+        background: transparent;
+        color: #667eea;
+        border: 2px solid #667eea;
+      }
+
+      .btn-outline:hover {
+        background: #667eea;
+        color: white;
+      }
+
+      .toast {
+        position: fixed;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.85);
+        color: white;
+        padding: 14px 28px;
+        border-radius: 12px;
+        font-size: 14px;
+        font-weight: 500;
+        backdrop-filter: blur(10px);
+        opacity: 0;
+        transition: all 0.3s ease;
+        pointer-events: none;
+        z-index: 1000;
+        max-width: 90%;
+        text-align: center;
+      }
+
+      .toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+
+      .toast.success {
+        background: rgba(52, 199, 89, 0.95);
+      }
+
+      .toast.error {
+        background: rgba(255, 82, 82, 0.95);
+      }
+
+      .toast.info {
+        background: rgba(0, 119, 255, 0.95);
+      }
+
+      .loading-spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: #fff;
+        animation: spin 0.8s ease-in-out infinite;
+      }
+
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+
+      @media (max-width: 480px) {
+        .container {
+          padding: 28px 20px;
+        }
+
+        .affirmation-text {
+          font-size: 18px;
+        }
+
+        .btn {
+          padding: 12px 20px;
+          font-size: 14px;
+        }
+      }
+    </style>
   </head>
   <body>
-    <h1 id="status">Загрузка...</h1>
-    <p id="details"></p>
+    <div class="container">
+      <!-- Статус -->
+      <div id="statusBadge" class="status-badge">Загрузка...</div>
+
+      <!-- Иконка -->
+      <span class="icon">✨</span>
+
+      <h1>Аффирмация дня</h1>
+      <p class="subtitle">Получи порцию вдохновения и поделись с друзьями</p>
+
+      <!-- Блок с аффирмацией -->
+      <div id="affirmationBox" class="affirmation-box">
+        <div id="affirmationText" class="affirmation-text">
+          <span class="quote-mark">"</span>
+          <span id="affirmationContent">Нажмите кнопку ниже</span>
+          <span class="quote-mark">"</span>
+        </div>
+        <span id="affirmationCounter" class="affirmation-counter">#1</span>
+      </div>
+
+      <!-- Кнопки -->
+      <div class="btn-group">
+        <button id="newAffirmationBtn" class="btn btn-primary">
+          🎲 Новая аффирмация
+        </button>
+        <button id="postStoryBtn" class="btn btn-vk" disabled>
+          📱 Опубликовать в сторис
+        </button>
+        <button id="copyBtn" class="btn btn-outline">
+          📋 Скопировать текст
+        </button>
+      </div>
+
+      <!-- Уведомление -->
+      <div id="toast" class="toast"></div>
+    </div>
 
     <script>
-      // 1. Инициализируем мост
-      // Исправление: VKBridge может быть доступен как window.VKBridge или window.vkBridge
+      // ==================== БАЗА АФФИРМАЦИЙ ====================
+      const AFFIRMATIONS = [
+        "Я принимаю себя и люблю такой, какая я есть",
+        "Каждый день я становлюсь сильнее и увереннее",
+        "Я достойна всего самого лучшего в этой жизни",
+        "Мои возможности безграничны, я могу всё",
+        "Я привлекаю успех и процветание в свою жизнь",
+        "Мой внутренний свет озаряет путь другим",
+        "Я благодарна за каждый момент своей жизни",
+        "Мои мысли создают мою реальность",
+        "Я излучаю любовь и притягиваю любовь",
+        "С каждым днём я становлюсь лучше",
+        "Я верю в свои силы и возможности",
+        "Моя жизнь наполнена радостью и счастьем",
+        "Я выбираю быть счастливой прямо сейчас",
+        "Все мои мечты осуществимы",
+        "Я в гармонии с собой и миром вокруг",
+        "Каждый день приносит мне новые возможности",
+        "Я благодарна Вселенной за все дары",
+        "Моя уверенность растёт с каждым днём",
+        "Я привлекаю только позитивных людей",
+        "Мой успех неизбежен, я на правильном пути"
+      ];
+
+      // ==================== СОСТОЯНИЕ ====================
+      let currentAffirmation = '';
+      let currentIndex = 0;
+      let isVK = false;
+      let isPosting = false;
+
+      // ==================== DOM ЭЛЕМЕНТЫ ====================
+      const statusBadge = document.getElementById('statusBadge');
+      const affirmationContent = document.getElementById('affirmationContent');
+      const affirmationBox = document.getElementById('affirmationBox');
+      const affirmationCounter = document.getElementById('affirmationCounter');
+      const newBtn = document.getElementById('newAffirmationBtn');
+      const postBtn = document.getElementById('postStoryBtn');
+      const copyBtn = document.getElementById('copyBtn');
+      const toast = document.getElementById('toast');
+
+      // ==================== VK BRIDGE ====================
       const bridge = window.vkBridge || window.VKBridge;
 
-      const statusEl = document.getElementById('status');
-      const detailsEl = document.getElementById('details');
-
-      if (bridge) {
-        // 2. Если мост есть (мы внутри ВК)
-        statusEl.textContent = '✅ Приложение запущено внутри ВКонтакте!';
-        statusEl.style.color = '#0077FF'; // Синий цвет VK
+      // ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
+      function showToast(message, type = 'info', duration = 3000) {
+        toast.textContent = message;
+        toast.className = 'toast';
+        toast.classList.add(type);
         
-        detailsEl.textContent = 'VK Bridge успешно найден. Можно добавлять функционал.';
-        detailsEl.style.color = '#333';
+        // Форсируем reflow для анимации
+        void toast.offsetWidth;
         
-        // Исправление: Добавляем инициализацию bridge для корректной работы
-        bridge.send('VKWebAppInit', {})
-          .then((data) => {
-            console.log('VK Bridge инициализирован:', data);
-          })
-          .catch((error) => {
-            console.error('Ошибка инициализации VK Bridge:', error);
-          });
-      } else {
-        // 3. Если моста нет (мы в браузере)
-        statusEl.textContent = '⚠️ Ты открыла ссылку не внутри ВКонтакте.';
-        statusEl.style.color = '#FF5252'; // Красный цвет
+        toast.classList.add('show');
         
-        detailsEl.textContent = 'Открой это приложение через кнопку "Перейти к приложению" в настройках VK Developers. VK Bridge работает только там.';
-        detailsEl.style.color = '#555';
+        clearTimeout(toast._timeout);
+        toast._timeout = setTimeout(() => {
+          toast.classList.remove('show');
+        }, duration);
       }
+
+      function getRandomAffirmation() {
+        let newIndex;
+        do {
+          newIndex = Math.floor(Math.random() * AFFIRMATIONS.length);
+        } while (newIndex === currentIndex && AFFIRMATIONS.length > 1);
+        return newIndex;
+      }
+
+      function setAffirmation(index) {
+        currentIndex = index;
+        currentAffirmation = AFFIRMATIONS[index];
+        
+        // Анимация смены
+        affirmationBox.classList.add('fade');
+        
+        setTimeout(() => {
+          affirmationContent.textContent = currentAffirmation;
+          affirmationCounter.textContent = `#${index + 1}`;
+          affirmationBox.classList.remove('fade');
+        }, 300);
+      }
+
+      function getAffirmationText() {
+        return currentAffirmation || AFFIRMATIONS[0];
+      }
+
+      function getStoryText() {
+        return `✨ Моя аффирмация дня: "${getAffirmationText()}" 🌟`;
+      }
+
+      // ==================== КОПИРОВАНИЕ ====================
+      async function copyAffirmation() {
+        const text = getAffirmationText();
+        try {
+          await navigator.clipboard.writeText(text);
+          showToast('✅ Аффирмация скопирована!', 'success');
+        } catch (err) {
+          // Fallback для старых браузеров
+          const textarea = document.createElement('textarea');
+          textarea.value = text;
+          document.body.appendChild(textarea);
+          textarea.select();
+          try {
+            document.execCommand('copy');
+            showToast('✅ Аффирмация скопирована!', 'success');
+          } catch (e) {
+            showToast('❌ Не удалось скопировать текст', 'error');
+          }
+          document.body.removeChild(textarea);
+        }
+      }
+
+      // ==================== ПУБЛИКАЦИЯ В СТОРИС ====================
+      async function postToStory() {
+        if (!isVK) {
+          showToast('❌ Функция доступна только внутри ВКонтакте', 'error');
+          return;
+        }
+
+        if (isPosting) return;
+        isPosting = true;
+        postBtn.disabled = true;
+        postBtn.innerHTML = '<span class="loading-spinner"></span> Публикация...';
+
+        try {
+          const storyText = getStoryText();
+          
+          // 1. Проверяем, есть ли доступ к созданию сторис
+          const checkResult = await bridge.send('VKWebAppCheckStoryAccess', {});
+          console.log('Check story access:', checkResult);
+
+          if (!checkResult.available) {
+            showToast('❌ Сторис недоступны для этого приложения', 'error');
+            isPosting = false;
+            postBtn.disabled = false;
+            postBtn.innerHTML = '📱 Опубликовать в сторис';
+            return;
+          }
+
+          // 2. Создаём изображение для сторис с текстом
+          const canvas = document.createElement('canvas');
+          canvas.width = 1080;
+          canvas.height = 1920;
+          const ctx = canvas.getContext('2d');
+
+          // Градиентный фон
+          const gradient = ctx.createLinearGradient(0, 0, 1080, 1920);
+          gradient.addColorStop(0, '#667eea');
+          gradient.addColorStop(0.5, '#764ba2');
+          gradient.addColorStop(1, '#f093fb');
+          ctx.fillStyle = gradient;
+          ctx.fillRect(0, 0, 1080, 1920);
+
+          // Декоративные круги
+          ctx.beginPath();
+          ctx.arc(1080, 0, 400, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.arc(0, 1920, 500, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+          ctx.fill();
+
+          // Текст аффирмации
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+
+          // Кавычки
+          ctx.font = 'bold 80px Georgia, serif';
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+          ctx.fillText('"', 540, 300);
+
+          // Основной текст
+          const maxWidth = 800;
+          const lines = [];
+          let currentLine = '';
+          const words = getAffirmationText().split(' ');
+
+          ctx.font = 'bold 64px -apple-system, BlinkMacSystemFont, sans-serif';
+          ctx.fillStyle = '#ffffff';
+
+          for (const word of words) {
+            const testLine = currentLine + word + ' ';
+            const metrics = ctx.measureText(testLine);
+            if (metrics.width > maxWidth && currentLine.length > 0) {
+              lines.push(currentLine.trim());
+              currentLine = word + ' ';
+            } else {
+              currentLine = testLine;
+            }
+          }
+          if (currentLine.length > 0) lines.push(currentLine.trim());
+
+          const lineHeight = 90;
+          const startY = 800;
+
+          lines.forEach((line, i) => {
+            const y = startY + i * lineHeight;
+            // Тень для читаемости
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+            ctx.shadowBlur = 20;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 4;
+            ctx.fillText(line, 540, y);
+          });
+
+          // Сброс тени
+          ctx.shadowColor = 'transparent';
+          ctx.shadowBlur = 0;
+
+          // Кавычки закрывающие
+          ctx.font = 'bold 80px Georgia, serif';
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+          ctx.fillText('"', 540, lines.length * lineHeight + 850);
+
+          // Подпись
+          ctx.font = '400 36px -apple-system, BlinkMacSystemFont, sans-serif';
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+          ctx.fillText('✨ Аффирмация дня ✨', 540, 1750);
+
+          // Нижний декоративный элемент
+          ctx.font = '24px -apple-system, BlinkMacSystemFont, sans-serif';
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+          ctx.fillText('Поделись вдохновением с друзьями', 540, 1840);
+
+          // Конвертируем в Blob
+          const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+
+          // 3. Загружаем фото на сервер VK
+          const uploadResult = await bridge.send('VKWebAppUploadStory', {
+            file: blob,
+            text: storyText,
+            attach_link: true
+          });
+
+          console.log('Story upload result:', uploadResult);
+
+          if (uploadResult.result) {
+            showToast('✅ Сторис опубликована! 🌟', 'success', 4000);
+          } else {
+            throw new Error('Не удалось опубликовать сторис');
+          }
+
+        } catch (error) {
+          console.error('Ошибка публикации сторис:', error);
+          showToast('❌ Ошибка при публикации: ' + (error.message || 'Неизвестная ошибка'), 'error', 4000);
+        } finally {
+          isPosting = false;
+          postBtn.disabled = false;
+          postBtn.innerHTML = '📱 Опубликовать в сторис';
+        }
+      }
+
+      // ==================== ИНИЦИАЛИЗАЦИЯ VK ====================
+      async function initVK() {
+        if (bridge) {
+          try {
+            // Пытаемся инициализировать VK Bridge
+            await bridge.send('VKWebAppInit', {});
+            isVK = true;
+            
+            statusBadge.textContent = '✅ ВКонтакте';
+            statusBadge.className = 'status-badge vk';
+            
+            postBtn.disabled = false;
+            
+            // Проверяем доступ к сторис
+            try {
+              const checkResult = await bridge.send('VKWebAppCheckStoryAccess', {});
+              if (!checkResult.available) {
+                postBtn.title = 'Сторис недоступны';
+                postBtn.style.opacity = '0.6';
+              }
+            } catch (e) {
+              console.warn('Не удалось проверить доступ к сторис:', e);
+            }
+            
+            showToast('✅ Приложение подключено к ВКонтакте', 'info', 2000);
+            
+          } catch (error) {
+            console.warn('Ошибка инициализации VK Bridge:', error);
+            isVK = false;
+            statusBadge.textContent = '⚠️ Ошибка подключения';
+            statusBadge.className = 'status-badge browser';
+            postBtn.disabled = true;
+            showToast('⚠️ Ошибка подключения к ВКонтакте', 'error');
+          }
+        } else {
+          isVK = false;
+          statusBadge.textContent = '⚠️ Вне ВКонтакте';
+          statusBadge.className = 'status-badge browser';
+          postBtn.disabled = true;
+        }
+      }
+
+      // ==================== ОБРАБОТЧИКИ СОБЫТИЙ ====================
+      newBtn.addEventListener('click', () => {
+        const newIndex = getRandomAffirmation();
+        setAffirmation(newIndex);
+        showToast('✨ Новая аффирмация готова!', 'info', 1500);
+      });
+
+      postBtn.addEventListener('click', postToStory);
+
+      copyBtn.addEventListener('click', copyAffirmation);
+
+      // ==================== ЗАПУСК ====================
+      // Устанавливаем первую аффирмацию
+      const initialIndex = Math.floor(Math.random() * AFFIRMATIONS.length);
+      setAffirmation(initialIndex);
+
+      // Инициализируем VK
+      initVK();
+
+      // Обработка ошибок VK Bridge
+      if (bridge) {
+        bridge.subscribe((event) => {
+          console.log('VK Bridge event:', event);
+          
+          if (event.detail && event.detail.type === 'VKWebAppStoryUploadFailed') {
+            showToast('❌ Ошибка загрузки сторис', 'error');
+            isPosting = false;
+            postBtn.disabled = false;
+            postBtn.innerHTML = '📱 Опубликовать в сторис';
+          }
+        });
+      }
+
+      // ==================== ТЕСТОВЫЙ РЕЖИМ ====================
+      // Если мы вне ВК, показываем подсказку о публикации сторис
+      if (!isVK) {
+        setTimeout(() => {
+          showToast('💡 Для публикации сторис открой приложение в ВК', 'info', 4000);
+        }, 1500);
+      }
+
+      console.log('✅ Аффирмация дня готова!');
+      console.log(`📋 Всего аффирмаций: ${AFFIRMATIONS.length}`);
     </script>
   </body>
 </html>
