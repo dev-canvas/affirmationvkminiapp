@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Тест ВК Мини-апп</title>
+    <!-- Подключаем VK Bridge -->
+    <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
+  </head>
+  <body>
+    <h1 id="status">Загрузка...</h1>
+    <p id="details"></p>
+
+    <script>
+      // 1. Инициализируем мост
+      const bridge = window.VKBridge;
+
+      const statusEl = document.getElementById('status');
+      const detailsEl = document.getElementById('details');
+
+      if (bridge) {
+        // 2. Если мост есть (мы внутри ВК)
+        statusEl.textContent = '✅ Приложение запущено внутри ВКонтакте!';
+        statusEl.style.color = '#0077FF'; // Синий цвет VK
+        
+        detailsEl.textContent = 'VK Bridge успешно найден. Можно добавлять функционал.';
+        detailsEl.style.color = '#333';
+      } else {
+        // 3. Если моста нет (мы в браузере)
+        statusEl.textContent = '⚠️ Ты открыла ссылку не внутри ВКонтакте.';
+        statusEl.style.color = '#FF5252'; // Красный цвет
+        
+        detailsEl.textContent = 'Открой это приложение через кнопку "Перейти к приложению" в настройках VK Developers. VK Bridge работает только там.';
+        detailsEl.style.color = '#555';
+      }
+    </script>
+  </body>
+</html>
